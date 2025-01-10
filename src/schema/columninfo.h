@@ -44,7 +44,9 @@ struct CSphColumnInfo
 		ATTR_COLUMNAR			= 1 << 0,
 		ATTR_COLUMNAR_HASHES	= 1 << 1,
 		ATTR_STORED				= 1 << 2,
-		ATTR_INDEXED_KNN		= 1 << 3
+		ATTR_INDEXED_KNN		= 1 << 3,
+		ATTR_JOINED				= 1 << 4,
+		ATTR_INDEXED_SI			= 1 << 5
 	};
 
 	CSphString		m_sName;							///< column name
@@ -88,6 +90,8 @@ struct CSphColumnInfo
 	bool IsColumnarExpr() const;
 	bool IsStoredExpr() const;
 	bool IsIndexedKNN() const;
+	bool IsJoined() const;
+	bool IsIndexedSI() const;
 };
 
 
