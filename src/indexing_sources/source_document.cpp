@@ -96,6 +96,7 @@ void CSphSource::Setup ( const CSphSourceSettings & tSettings, StrVec_t * pWarni
 	m_dRowwiseAttrs = tSettings.m_dRowwiseAttrs;
 	m_dColumnarStringsNoHash = tSettings.m_dColumnarStringsNoHash;
 	m_dKNN = tSettings.m_dKNN;
+	m_dJsonSIAttrs = tSettings.m_dJsonSIAttrs;
 	m_bIndexFieldLens = tSettings.m_bIndexFieldLens;
 	m_eEngine = tSettings.m_eEngine;
 
@@ -745,7 +746,10 @@ void CSphSource::BuildRegularHits ( RowID_t tRowID, bool bPayload, int & iBlende
 		} else
 		{
 			// need to count all blended part tokens to match query
-			m_tState.m_iBuildLastStep = ( m_pTokenizer->TokenIsBlendedPart() ? 1 : m_iStopwordStep );
+			if ( m_pTokenizer->TokenIsBlended() )
+				m_tState.m_iBuildLastStep = 0;
+			else
+				m_tState.m_iBuildLastStep = ( m_pTokenizer->TokenIsBlendedPart() ? 1 : m_iStopwordStep );
 		}
 	}
 

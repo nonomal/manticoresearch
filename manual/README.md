@@ -7,6 +7,7 @@
     * [• MacOS](Installation/MacOS.md)
     * [• Windows](Installation/Windows.md)
     * [• Compiling from sources](Installation/Compiling_from_sources.md)
+    * [• Manticore Buddy](Installation/Manticore_Buddy.md)
     * [• Migration from Sphinx](Installation/Migration_from_Sphinx.md)
 * [🔰 Quick start guide](Quick_start_guide.md)
 * [2️⃣ Starting the server](Starting_the_server.md)
@@ -16,9 +17,9 @@
     * [• In Windows](Starting_the_server/Windows.md)
     * [• In MacOS](Starting_the_server/MacOS.md)
 * [3️⃣ Creating a table](Creating_a_table.md)
-    * [• Data types](Creating_a_table/Data_types.md)
+    * [⪢ Data types](Creating_a_table/Data_types.md)
         * [• Row-wise and columnar attribute storages](Creating_a_table/Data_types.md#Row-wise-and-columnar-attribute-storages)
-    * [Creating a local table](Creating_a_table/Local_tables.md)
+    * [⪢ Creating a local table](Creating_a_table/Local_tables.md)
         * [✔ Real-time table](Creating_a_table/Local_tables/Real-time_table.md)
         * [• Plain table](Creating_a_table/Local_tables/Plain_table.md)
         * [• Plain and real-time table settings](Creating_a_table/Local_tables/Plain_and_real-time_table_settings.md)
@@ -27,7 +28,7 @@
     * [⪢ NLP and tokenization]
         * [• Data tokenization](Creating_a_table/NLP_and_tokenization/Data_tokenization.md)
         * [• Supported languages](Creating_a_table/NLP_and_tokenization/Supported_languages.md)
-        * [• CJK](Creating_a_table/NLP_and_tokenization/CJK.md)
+        * [• Languages with continuous scripts](Creating_a_table/NLP_and_tokenization/Languages_with_continuous_scripts.md)
         * [• Low-level tokenization](Creating_a_table/NLP_and_tokenization/Low-level_tokenization.md)
         * [• Wildcard searching settings](Creating_a_table/NLP_and_tokenization/Wildcard_searching_settings.md)
         * [• Ignoring stop words](Creating_a_table/NLP_and_tokenization/Ignoring_stop-words.md)
@@ -63,7 +64,7 @@
     * [⪢ Adding documents to a table]
         * [✔ Adding documents to a real-time table](Data_creation_and_modification/Adding_documents_to_a_table/Adding_documents_to_a_real-time_table.md)
         * [Adding rules to a percolate table](Data_creation_and_modification/Adding_documents_to_a_table/Adding_rules_to_a_percolate_table.md)
-    * [⪢ Adding data from external storages]
+    * [⪢ Adding data from external storages](Data_creation_and_modification/Adding_data_from_external_storages.md)
         * [Plain tables creation](Data_creation_and_modification/Adding_data_from_external_storages/Plain_tables_creation.md)
         * [⪢ Fetching from databases]
             * [Introduction](Data_creation_and_modification/Adding_data_from_external_storages/Fetching_from_databases/Introduction.md)
@@ -77,8 +78,8 @@
         * [⪢ Adding data from tables]
             * [• Merging tables](Data_creation_and_modification/Adding_data_from_external_storages/Adding_data_to_tables/Merging_tables.md)
             * [• Killlists in plain tables](Data_creation_and_modification/Adding_data_from_external_storages/Adding_data_to_tables/Killlist_in_plain_tables.md)
-            * [• Attaching a plain table to RT table](Data_creation_and_modification/Adding_data_from_external_storages/Adding_data_to_tables/Attaching_a_plain_table_to_RT_table.md)
-            * [• Importing RT table](Data_creation_and_modification/Adding_data_from_external_storages/Adding_data_to_tables/Importing_table.md)        
+            * [• Attaching one table to another](Data_creation_and_modification/Adding_data_from_external_storages/Adding_data_to_tables/Attaching_one_table_to_another.md)
+            * [• Importing RT table](Data_creation_and_modification/Adding_data_from_external_storages/Adding_data_to_tables/Importing_table.md)
         * [• Rotating a table](Data_creation_and_modification/Adding_data_from_external_storages/Rotating_a_table.md)
     * [⪢ Updating documents]
         * [• REPLACE vs UPDATE](Data_creation_and_modification/Updating_documents/REPLACE_vs_UPDATE.md)
@@ -96,6 +97,7 @@
         * [• Boolean optimization](Searching/Full_text_matching/Boolean_optimization.md)
     * [• Search results](Searching/Search_results.md)
     * [• Filters](Searching/Filters.md)
+    * [• Joining](Searching/Joining.md)
     * [• Expressions](Searching/Expressions.md)
     * [• Search options](Searching/Options.md)
     * [• Highlighting](Searching/Highlighting.md)
@@ -110,11 +112,18 @@
     * [• Percolate query](Searching/Percolate_query.md)
     * [• Autocomplete](Searching/Autocomplete.md)
     * [• Spell correction](Searching/Spell_correction.md)
+        * [• Fuzzy search](Searching/Spell_correction.md#Fuzzy-Search)
     * [• Query cache](Searching/Query_cache.md)
     * [• Collations](Searching/Collations.md)
     * [• Cost-based optimizer](Searching/Cost_based_optimizer.md)
     * [• K-nearest neighbor vector search](Searching/KNN.md)
-* [• Updating table schema and settings](Updating_table_schema_and_settings.md)    
+* [• Updating table schema and settings](Updating_table_schema_and_settings.md)
+    * [• Updating table schema in RT mode](Updating_table_schema_and_settings.md#Updating-table-schema-in-RT-mode)
+    * [• Updating table FT settings in RT mode](Updating_table_schema_and_settings.md#Updating-table-FT-settings-in-RT-mode)
+    * [• Renaming a real-time table](Updating_table_schema_and_settings.md#Renaming-a-real-time-table)
+    * [• Updating table FT settings in plain mode](Updating_table_schema_and_settings.md#Updating-table-FT-settings-in-plain-mode)
+    * [• Rebuilding a secondary index](Updating_table_schema_and_settings.md#Rebuilding-a-secondary-index)
+    * [• Changing a distributed table](Updating_table_schema_and_settings.md#Changing-a-distributed-table)
 * [⪢ Functions](Functions.md)
     * [• Mathematical functions](Functions/Mathematical_functions.md)
     * [• Searching and ranking functions](Functions/Searching_and_ranking_functions.md)
@@ -146,7 +155,7 @@
 * [⪢ Node info and management]
     * [• Node status](Node_info_and_management/Node_status.md)
     * [• SHOW META](Node_info_and_management/SHOW_META.md)
-    * [• SHOW THREADS](Node_info_and_management/SHOW_THREADS.md) 
+    * [• SHOW THREADS](Node_info_and_management/SHOW_THREADS.md)
     * [• SHOW QUERIES](Node_info_and_management/SHOW_QUERIES.md)
     * [• SHOW VERSION](Node_info_and_management/SHOW_VERSION.md)
     * [• KILL](Node_info_and_management/KILL.md)
@@ -156,6 +165,7 @@
         * [• Query profiling](Node_info_and_management/Profiling/Query_profile.md)
         * [• Query plan](Node_info_and_management/Profiling/Query_plan.md)
     * [⪢ Table settings and status]
+        * [• SHOW TABLE INDEXES](Node_info_and_management/Table_settings_and_status/SHOW_TABLE_INDEXES.md)
         * [• SHOW TABLE STATUS](Node_info_and_management/Table_settings_and_status/SHOW_TABLE_STATUS.md)
         * [• SHOW TABLE SETTINGS](Node_info_and_management/Table_settings_and_status/SHOW_TABLE_SETTINGS.md)
 * [⪢ Server settings]
@@ -169,6 +179,10 @@
 * [⪢ Integration]
     * [Logstash](Integration/Logstash.md)
     * [Filebeat](Integration/Filebeat.md)
+    * [Kibana](Integration/Kibana.md)
+    * [Kafka](Integration/Kafka.md)
+    * [DBeaver](Integration/DBeaver.md)
+    * [Apache Superset](Integration/Apache_Superset.md)
 * [⪢ Extensions]
     * [SphinxSE](Extensions/SphinxSE.md)
     * [FEDERATED](Extensions/FEDERATED.md)
@@ -180,6 +194,7 @@
         * [⪢ Plugins]
             * [• Creating a plugin](Extensions/UDFs_and_Plugins/Plugins/Creating_a_plugin.md)
             * [• Deleting a plugin](Extensions/UDFs_and_Plugins/Plugins/Deleting_a_plugin.md)
+            * [• Enabling and disabling Buddy plugins](Extensions/UDFs_and_Plugins/Plugins/Enabling_and_disabling_buddy_plugins.md)
             * [• Reloading plugins](Extensions/UDFs_and_Plugins/Plugins/Reloading_plugins.md)
             * [• Ranker plugins](Extensions/UDFs_and_Plugins/Plugins/Ranker_plugins.md)
             * [• Token filter plugins](Extensions/UDFs_and_Plugins/Plugins/Token_filter_plugins.md)

@@ -75,7 +75,7 @@ $locals['ctest'] = false;
 if ( array_key_exists ( "DBUSER", $_ENV ) && $_ENV["DBUSER"] )
 	$locals['db-user'] = $_ENV["DBUSER"];
 
-if ( array_key_exists ( "DBPASS", $_ENV ) && $_ENV["DBPASS"] ) 
+if ( array_key_exists ( "DBPASS", $_ENV ) && $_ENV["DBPASS"] )
 	$locals['db-password'] = $_ENV["DBPASS"];
 
 $run = false;
@@ -108,7 +108,6 @@ for ( $i=0; $i<count($args); $i++ )
 	else if ( $arg=="--ctest" )						{ $locals['ctest'] = true; $ctest = true; $force_guess = false; }
 	else if ( $arg=="--rt" )						$locals['rt_mode'] = true;
 	else if ( $arg=="--columnar" )					$locals['columnar_mode'] = true;
-	else if ( $arg=="--test-thd-pool" )				$locals['use_pool'] = true;
 	else if ( $arg=="--strict" )					$g_strict = true;
 	else if ( $arg=="--strict-verbose" )			{ $g_strict = true; $g_strictverbose = true; }
 	else if ( $arg=="--valgrind-searchd" )			$locals['valgrindsearchd'] = true;
@@ -155,10 +154,10 @@ $VLG = getenv('VLG');
 
 $python = getenv('python');
 if (!$python)
-	$python = "/usr/bin/python";
+  $python = file_exists("/usr/bin/python3")?"/usr/bin/python3":"/usr/bin/python";
 
 if (!$windows && !is_executable($python) && !$ctest)
-	die("ubertest needs python support; install python");
+	die("ubertest needs python support; install python\n");
 
 $cygwin = false;
 if ( $locals['scriptdir']!=$locals['testdir'] )
@@ -214,12 +213,14 @@ else
 if ( !$g_guesscached ) {
 	GuessRE2();
 	GuessICU();
+	GuessJieba();
 	GuessODBC();
 	GuessReplication();
 	GuessSSL();
 	GuessColumnar();
 	GuessSecondary();
 	GuessKNN();
+	GuessZlib();
 	if ( !$force_guess )
 		CacheGuesses();
 }
@@ -227,7 +228,7 @@ if ( !$g_guesscached ) {
 if ( $g_locals["malloc-scribble"] )
 {
 	print ( "Malloc scribbling enabled.\n" );
-	putenv ( "MallocLogFile=/dev/null" );	
+	putenv ( "MallocLogFile=/dev/null" );
 	putenv ( "MallocScribble=1" );
 	putenv ( "MallocPreScribble=1" );
 	putenv ( "MallocGuardEdges=1" );
@@ -341,7 +342,7 @@ foreach ( $tests as $test )
 	{
 		$total_tests++;
 		$res = RunTest ( $test, $g_skipdemo, $g_usemarks );
-		
+
 		// copy searchd log into a file
 		file_put_contents($name_err_all, "\n*** in test $test ***\n", FILE_APPEND);
 		if ( file_exists ($name_err) )
