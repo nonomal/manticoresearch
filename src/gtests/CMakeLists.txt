@@ -40,12 +40,13 @@ target_compile_options ( gmanticoretest PRIVATE $<$<OR:$<COMPILE_LANG_AND_ID:CXX
 set ( CMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE PRE_TEST )
 
 include ( GoogleTest )
-GTEST_DISCOVER_TESTS ( gmanticoretest PROPERTIES LABELS GOOGLE )
+GTEST_DISCOVER_TESTS ( gmanticoretest PROPERTIES LABELS GOOGLE ENVIRONMENT "GTEST_DICT=${CMAKE_CURRENT_SOURCE_DIR}")
 message ( STATUS "Discovered and added individual google-tests" )
 
 if (WIN32)
-	getruntime ( libs common )
-	getruntime ( libs indexer )
-	getruntime ( libs daemon )
+#	getruntime ( libs common )
+#	getruntime ( libs indexer )
+#	getruntime ( libs daemon )
 	add_custom_command ( TARGET gmanticoretest POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${libs} "$<TARGET_FILE_DIR:gmanticoretest>" VERBATIM )
+	message ( STATUS "Collected libs is ${libs}" )
 endif ()

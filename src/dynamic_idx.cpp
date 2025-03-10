@@ -12,6 +12,7 @@
 
 #include "dynamic_idx.h"
 #include "sphinxsort.h"
+#include "querycontext.h"
 
 using namespace Threads;
 
@@ -330,7 +331,7 @@ public:
 	}
 	using RowBuffer_i::Eof;
 
-	void Error ( const char * sError, MysqlErrors_e ) override
+	void Error ( const char * sError, EMYSQL_ERR ) override
 	{
 		m_bError = true;
 		m_sError = sError;
@@ -468,7 +469,7 @@ public:
 	bool Commit() override { return false;}
 	void Eof ( bool, int, const char* ) override {}
 	using RowBuffer_i::Eof;
-	void Error ( const char * sError, MysqlErrors_e ) override
+	void Error ( const char * sError, EMYSQL_ERR ) override
 	{
 		m_bError = true;
 		m_sError = sError;
@@ -584,7 +585,8 @@ bool GenericTableIndex_c::MultiScan ( CSphQueryResult & tResult, const CSphQuery
 	CreateFilterContext_t tFlx;
 	tFlx.m_pFilters = &tQuery.m_dFilters;
 	tFlx.m_pFilterTree = &tQuery.m_dFilterTree;
-	tFlx.m_pSchema = &tMaxSorterSchema;
+	tFlx.m_pMatchSchema = &tMaxSorterSchema;
+	tFlx.m_pIndexSchema = &m_tSchema;
 	tFlx.m_eCollation = tQuery.m_eCollation;
 	tFlx.m_bScan = true;
 
