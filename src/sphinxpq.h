@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017-2024, Manticore Software LTD (https://manticoresearch.com)
+// Copyright (c) 2017-2025, Manticore Software LTD (https://manticoresearch.com)
 // Copyright (c) 2001-2016, Andrew Aksyonoff
 // Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
@@ -20,8 +20,8 @@
 #include "sphinxsearch.h"
 #include "sphinxrt.h"
 #include "searchdha.h"
-//#include "binlog.h"
 #include "accumulator.h"
+#include "querycontext.h"
 
 // stuff moved here from sphinxrt.h
 
@@ -159,7 +159,7 @@ public:
 
 	ISphQword * QwordSpawn ( const XQKeyword_t & ) const final;
 	bool QwordSetup ( ISphQword * pQword ) const final;
-	ISphQword * ScanSpawn() const final;
+	ISphQword * ScanSpawn ( int iAtomPos ) const final;
 
 private:
 	const RtSegment_t * m_pSeg;

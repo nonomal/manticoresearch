@@ -1,5 +1,5 @@
-name: CLT testing of supported versions of mysqldump
-run-name: CLT testing of supported versions of mysqldump ${{ github.sha }}
+name: Nightly testing of supported versions of mysqldump and elasticdump
+run-name: 🌙 Nightly tests of mysqldump and elasticdump ${{ github.sha }}
 
 on:
   schedule:
@@ -7,7 +7,9 @@ on:
   pull_request:
     branches: [ master ]
     paths:
-      - 'test/clt-tests/mysqldump/versions/**'
+      - 'test/clt-tests/migration-es-ms/**'       # trigger when changes are made in migration test files
+      - 'test/clt-tests/mysqldump/versions/**'     # trigger when changes are made in mysqldump test files
+      - '.github/workflows/nightly_dumps.yml'      # trigger when changes are made in the workflow config
 
 # cancels the previous workflow run when a new one appears in the same branch (e.g. master or a PR's branch)
 concurrency:
@@ -23,20 +25,26 @@ jobs:
           echo "# Nightly tests of latest release" >> $GITHUB_STEP_SUMMARY
           echo "* Attempt: ${{ github.run_attempt }}" >> $GITHUB_STEP_SUMMARY
 
-  clt_test_supported_myqldump_versions:
-    name: Testing supported myqldump versions
+  clt_test_supported_mysqldump_versions:
+    name: Testing supported mysqldump versions
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Build test kit
-        uses: docker/build-push-action@v5
+      - uses: manticoresoftware/clt@0.6.3
         with:
-          push: false
-          tags: manticoresoftware/dind:latest
-          context: test/clt-tests/mysqldump/versions/docker/
-      - uses: manticoresoftware/clt@0.1.13
-        with:
-          image: manticoresoftware/dind:latest
+          image: manticoresearch/dind:v1
           test_prefix: test/clt-tests/mysqldump/versions/
+          run_args: --privileged
+
+  clt_test_migration_es_ms:
+    name: Testing data migration from elastic to manticore
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: manticoresoftware/clt@0.6.3
+        with:
+          image: manticoresearch/dind:v1
+          test_prefix: test/clt-tests/migration-es-ms/
           run_args: --privileged

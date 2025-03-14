@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2022-2024, Manticore Software LTD (https://manticoresearch.com)
+// Copyright (c) 2022-2025, Manticore Software LTD (https://manticoresearch.com)
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -679,7 +679,7 @@ std::pair<bool, CSphString> InvokeCurl ( CSphString sUrl, const VecTraits_T<Curl
 CSphString FetchUrl ( const CSphString& sUrl )
 {
 	CSphVector<CurlOpt_t> dCurlOpts;
-	dCurlOpts.Add ( { (CURLoption)237, 1L } ); // CURLOPT_PIPEWAIT. If not exist, will be just ignored
+	dCurlOpts.Add ( { (CURLoption)237, 0L } ); // CURLOPT_PIPEWAIT. If not exist, will be just ignored
 	auto [bSuccess, sResult] = InvokeCurl ( sUrl, dCurlOpts );
 	return sResult;
 }
@@ -690,7 +690,7 @@ std::pair<bool, CSphString> PostToHelperUrl ( CSphString sUrl, Str_t sQuery, con
 	dOptions.Add ( { CURLOPT_POST, 1 } );
 	dOptions.Add ( { CURLOPT_POSTFIELDSIZE, sQuery.second } );
 	dOptions.Add ( { CURLOPT_POSTFIELDS, (intptr_t)sQuery.first } );
-	dOptions.Add ( { (CURLoption)237, 1L } ); // CURLOPT_PIPEWAIT. If not exist, will be just ignored
+	dOptions.Add ( { (CURLoption)237, 0L } ); // CURLOPT_PIPEWAIT. If not exist, will be just ignored
 
 	CurlHttpHeaders_c tHeaders;
 	dHeaders.for_each ( [&tHeaders] ( const auto& sHeader ) { tHeaders.Append ( sHeader.cstr() ); } );

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017-2024, Manticore Software LTD (https://manticoresearch.com)
+// Copyright (c) 2017-2025, Manticore Software LTD (https://manticoresearch.com)
 // Copyright (c) 2001-2016, Andrew Aksyonoff
 // Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
@@ -937,14 +937,14 @@ AsyncNetInputBuffer_c::AsyncNetInputBuffer_c ()
 	m_iLen = 0;
 }
 
-Proto_e AsyncNetInputBuffer_c::Probe ( bool bLight )
+Proto_e AsyncNetInputBuffer_c::Probe()
 {
 	Proto_e eResult = Proto_e::UNKNOWN;
 	m_bIntr = false;
 	int iRest = 0;
 	if ( !HasBytes() )
 	{
-		iRest = GetRoomForTail();
+		iRest = Min ( NET_MINIBUFFER_SIZE, GetRoomForTail() );
 		if ( !iRest )
 			return eResult; // hard limit reached
 		AppendData ( 0, iRest, true );
@@ -953,11 +953,6 @@ Proto_e AsyncNetInputBuffer_c::Probe ( bool bLight )
 	auto iHas = HasBytes();
 	if (!iHas)
 	{
-		if ( bLight )
-		{
-			sphLogDebugv ( "+++++ Light probing revealed nothing, bail" );
-			return eResult;
-		}
 		sphLogDebugv ( "+++++ Light probing revealed nothing, try blocking" );
 		AppendData ( 1, iRest, true );
 		iHas = HasBytes ();
@@ -1061,12 +1056,15 @@ int AsyncNetInputBuffer_c::ReadAny ()
 	auto iRest = GetRoomForTail();
 	if ( !iRest )
 		return 0;
+	// ReadAny used only for HTTP header read (NET_MINIBUFFER_SIZE is enough  for header) and for initial HTTP fetch with the empty buffer - no need to allocate up to g_iMaxPacketSize
+	if ( !HasBytes() )
+		iRest = Min ( NET_MINIBUFFER_SIZE, iRest );
 
 	return AppendData ( 1, iRest, true );
 }
 
 
-ByteBlob_t AsyncNetInputBuffer_c::Tail ()
+ByteBlob_t AsyncNetInputBuffer_c::Tail () const noexcept
 {
 	return { m_pCur, HasBytes ()};
 }

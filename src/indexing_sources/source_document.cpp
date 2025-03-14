@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017-2024, Manticore Software LTD (https://manticoresearch.com)
+// Copyright (c) 2017-2025, Manticore Software LTD (https://manticoresearch.com)
 // Copyright (c) 2001-2016, Andrew Aksyonoff
 // Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
@@ -96,6 +96,7 @@ void CSphSource::Setup ( const CSphSourceSettings & tSettings, StrVec_t * pWarni
 	m_dRowwiseAttrs = tSettings.m_dRowwiseAttrs;
 	m_dColumnarStringsNoHash = tSettings.m_dColumnarStringsNoHash;
 	m_dKNN = tSettings.m_dKNN;
+	m_dJsonSIAttrs = tSettings.m_dJsonSIAttrs;
 	m_bIndexFieldLens = tSettings.m_bIndexFieldLens;
 	m_eEngine = tSettings.m_eEngine;
 
@@ -745,7 +746,10 @@ void CSphSource::BuildRegularHits ( RowID_t tRowID, bool bPayload, int & iBlende
 		} else
 		{
 			// need to count all blended part tokens to match query
-			m_tState.m_iBuildLastStep = ( m_pTokenizer->TokenIsBlendedPart() ? 1 : m_iStopwordStep );
+			if ( m_pTokenizer->TokenIsBlended() )
+				m_tState.m_iBuildLastStep = 0;
+			else
+				m_tState.m_iBuildLastStep = ( m_pTokenizer->TokenIsBlendedPart() ? 1 : m_iStopwordStep );
 		}
 	}
 

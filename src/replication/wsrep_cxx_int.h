@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2024, Manticore Software LTD (https://manticoresearch.com)
+// Copyright (c) 2024-2025, Manticore Software LTD (https://manticoresearch.com)
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -98,7 +98,7 @@ extern std::atomic<uint64_t> uWritesetConnIds;
 template<typename WSREPWRAP>
 class Writeset_T final: public Wsrep::Writeset_i
 {
-	using Status_e = typename WSREPWRAP::Status_e;
+	using Status_e = typename WSREPWRAP::Status_e_;
 	CSphRefcountedPtr<WSREPWRAP> m_pWsrep;
 	uint64_t m_uConnId;
 	Wsrep::TrxMeta_t m_tMeta;
@@ -234,7 +234,7 @@ template<typename WSREPWRAP>
 class Provider_T: public Wsrep::Provider_i
 {
 protected:
-	using Status_e = typename WSREPWRAP::Status_e;
+	using Status_e = typename WSREPWRAP::Status_e_;
 	CSphRefcountedPtr<WSREPWRAP> m_pWsrep;
 	Wsrep::Cluster_i* m_pCluster;
 	Wsrep::ReceiverRefPtr_c m_pReceiver;

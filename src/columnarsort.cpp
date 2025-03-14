@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2021-2024, Manticore Software LTD (https://manticoresearch.com)
+// Copyright (c) 2021-2025, Manticore Software LTD (https://manticoresearch.com)
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -1101,6 +1101,9 @@ static bool CanCreateColumnarSorter ( const ISphSchema & tSchema, const CSphMatc
 	{
 		const CSphColumnInfo & tAttr = tSchema.GetAttr(i);
 		if ( tAttr.m_eStage<=SPH_EVAL_PRESORT && tAttr.m_pExpr && sphIsDataPtrAttr ( tAttr.m_eAttrType ) )
+			return false;
+
+		if ( tAttr.IsJoined() )
 			return false;
 	}
 

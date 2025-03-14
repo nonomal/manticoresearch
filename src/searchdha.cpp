@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017-2024, Manticore Software LTD (https://manticoresearch.com)
+// Copyright (c) 2017-2025, Manticore Software LTD (https://manticoresearch.com)
 // Copyright (c) 2001-2016, Andrew Aksyonoff
 // Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
@@ -279,6 +279,54 @@ static bool IsIpAddress ( const char * sURL )
 			return false;
 	}
 	return true;
+}
+
+WarnInfo_c::WarnInfo_c ( const char * szIndexName, const char *	szAgent, CSphString & sError, StrVec_t * pWarnings )
+	: m_szIndexName ( szIndexName )
+	, m_szAgent ( szAgent )
+	, m_pWarnings ( pWarnings )
+	, m_sError ( sError )
+{}
+
+void WarnInfo_c::Warn ( const char * szFmt, ... ) const
+{
+	va_list ap;
+	va_start ( ap, szFmt );
+
+	CSphString sWarning;
+	if ( m_szIndexName )
+		sWarning.SetSprintf ( "table '%s': agent '%s': %s", m_szIndexName, m_szAgent, szFmt );
+	else
+		sWarning.SetSprintf ( "host '%s': %s", m_szAgent, szFmt );
+
+	sWarning.SetSprintfVa ( sWarning.cstr(), ap );
+	sphInfo ( "%s", sWarning.cstr() );
+
+	if ( m_pWarnings )
+		m_pWarnings->Add(sWarning);
+
+	va_end ( ap );
+}
+
+bool WarnInfo_c::ErrSkip ( const char * szFmt, ... ) const
+{
+	va_list ap;
+	va_start ( ap, szFmt );
+
+	CSphString sMsg;
+
+	if ( m_szIndexName )
+		sMsg.SetSprintf ( "table '%s': agent '%s': %s, - SKIPPING AGENT", m_szIndexName, m_szAgent, szFmt );
+	else
+		sMsg.SetSprintf ( "host '%s': %s, - SKIPPING AGENT", m_szAgent, szFmt );
+
+	sMsg.SetSprintfVa ( sMsg.cstr(), ap );
+	sphWarning ( "%s", sMsg.cstr() );
+
+	m_sError = sMsg;
+
+	va_end ( ap );
+	return false;
 }
 
 /// Set flag m_bNeedResolve if address is AF_INET, host is not empty and not plain IP address,
@@ -915,32 +963,99 @@ const char * Agent_e_Name ( Agent_e eState )
 	return "UNKNOWN_STATE";
 }
 
-void SearchdStats_t::Init()
+void InitSearchdStats() NO_THREAD_SAFETY_ANALYSIS
 {
-	m_uStarted = (DWORD)time ( nullptr );
-	m_iConnections = 0;
-	m_iMaxedOut = 0;
-	m_iAgentConnect = 0;
-	m_iAgentConnectTFO = 0;
+	SearchdStats_t& tStats = gStats();
+	tStats.m_uStarted = (DWORD)time ( nullptr );
+	tStats.m_iConnections = 0;
+	tStats.m_iMaxedOut = 0;
+	tStats.m_iAgentConnect = 0;
+	tStats.m_iAgentConnectTFO = 0;
 
-	m_iQueries = 0;
-	m_iQueryTime = 0;
-	m_iQueryCpuTime = 0;
+	tStats.m_iQueries = 0;
+	tStats.m_iQueryTime = 0;
+	tStats.m_iQueryCpuTime = 0;
 
-	m_iDistQueries = 0;
-	m_iDistWallTime = 0;
-	m_iDistLocalTime = 0;
-	m_iDistWaitTime = 0;
+	tStats.m_iDistQueries = 0;
+	tStats.m_iDistWallTime = 0;
+	tStats.m_iDistLocalTime = 0;
+	tStats.m_iDistWaitTime = 0;
 
-	m_iDiskReads = 0;
-	m_iDiskReadBytes = 0;
-	m_iDiskReadTime = 0;
+	tStats.m_iDiskReads = 0;
+	tStats.m_iDiskReadBytes = 0;
+	tStats.m_iDiskReadTime = 0;
 
-	m_iPredictedTime = 0;
-	m_iAgentPredictedTime = 0;
+	tStats.m_iPredictedTime = 0;
+	tStats.m_iAgentPredictedTime = 0;
 
-	for ( auto & i : m_iCommandCount )
+	for ( auto & i : tStats.m_iCommandCount )
 		i = 0;
+
+	for ( auto & i: tStats.m_dDetailedStats )
+		i.m_tStats = MakeStatsContainer ();
+}
+
+
+void StatCountCommandDetails ( SearchdStats_t::EDETAILS eCmd, uint64_t uFoundRows, uint64_t tmStart )
+{
+	auto tmNow = sphMicroTimer ();
+	auto & tDetail = gStats ().m_dDetailedStats[eCmd];
+	ScWL_t wLock ( tDetail.m_tStatsLock );
+	tDetail.m_tStats->Add ( uFoundRows, tmNow-tmStart, tmNow );
+}
+
+static void CalculateCommandStats ( SearchdStats_t::EDETAILS eCmd, QueryStats_t & tRowsFoundStats, QueryStats_t & tQueryTimeStats )
+{
+	auto & tDetail = gStats ().m_dDetailedStats[eCmd];
+	ScRL_t rLock ( tDetail.m_tStatsLock );
+	CalcSimpleStats ( tDetail.m_tStats.get (), tRowsFoundStats, tQueryTimeStats );
+}
+
+void FormatCmdStats ( VectorLike & dStatus, const char * szPrefix, SearchdStats_t::EDETAILS eCmd )
+{
+	using namespace QueryStats;
+	static std::array<const char *, TYPE_TOTAL> dStatTypeNames = { "avg", "min", "max", "pct95", "pct99" };
+
+	QueryStats_t tRowStats, tTimeStats;
+	bool bCalculated = false;
+	int iNulls = 0;
+
+	for ( int j = 0; j<TYPE_TOTAL; ++j )
+	{
+		if ( !dStatus.MatchAddf ( "%s_stats_ms_%s", szPrefix, dStatTypeNames[j] ) )
+			continue;
+
+		if ( !bCalculated )
+		{
+			CalculateCommandStats ( eCmd, tRowStats, tTimeStats );
+			iNulls = 0;
+			if ( UINT64_MAX==tTimeStats.m_dStats[INTERVAL_15MIN].m_dData[TYPE_MIN] )
+				iNulls = 3;
+			else if ( UINT64_MAX==tTimeStats.m_dStats[INTERVAL_5MIN].m_dData[TYPE_MIN] )
+				iNulls = 2;
+			else if ( UINT64_MAX==tTimeStats.m_dStats[INTERVAL_1MIN].m_dData[TYPE_MIN] )
+				iNulls = 1;
+			bCalculated = true;
+		}
+
+		StringBuilder_c sBuf;
+		switch ( iNulls )
+		{
+		case 0:
+			sBuf.Sprintf ( "%0.3D %0.3D %0.3D", tTimeStats.m_dStats[INTERVAL_1MIN].m_dData[j], tTimeStats.m_dStats[INTERVAL_5MIN].m_dData[j], tTimeStats.m_dStats[INTERVAL_15MIN].m_dData[j] );
+			break;
+		case 1:
+			sBuf.Sprintf ( "N/A %0.3D %0.3D", tTimeStats.m_dStats[INTERVAL_5MIN].m_dData[j], tTimeStats.m_dStats[INTERVAL_15MIN].m_dData[j] );
+			break;
+		case 2:
+			sBuf.Sprintf ( "N/A N/A %0.3D", tTimeStats.m_dStats[INTERVAL_15MIN].m_dData[j] );
+			break;
+		case 3:
+			sBuf << "N/A N/A N/A";
+		}
+
+		dStatus.Add ( sBuf.cstr () );
+	}
 }
 
 namespace {
@@ -1294,13 +1409,13 @@ static bool ConfigureMirrorSet ( CSphVector<AgentDesc_t*> &tMirrors, AgentOption
 }
 
 // different cases are tested in T_ConfigureMultiAgent, see gtests_searchdaemon.cpp
-MultiAgentDescRefPtr_c ConfigureMultiAgent ( const char * szAgent, const char * szIndexName, AgentOptions_t tOptions, StrVec_t * pWarnings )
+MultiAgentDescRefPtr_c ConfigureMultiAgent ( const char * szAgent, const char * szIndexName, AgentOptions_t tOptions, CSphString & sError, StrVec_t * pWarnings )
 {
 	MultiAgentDescRefPtr_c pRes;
 	CSphVector<AgentDesc_t *> tMirrors;
 	AT_SCOPE_EXIT ( [&tMirrors] { tMirrors.for_each( [] ( auto * pMirror ) { SafeDelete ( pMirror ); } ); } );
 
-	WarnInfo_c tWI ( szIndexName, szAgent, pWarnings );
+	WarnInfo_c tWI ( szIndexName, szAgent, sError, pWarnings );
 
 	if ( ConfigureMirrorSet ( tMirrors, &tOptions, tWI ) )
 		pRes = MultiAgentDesc_c::GetAgent ( tMirrors, tOptions, tWI );

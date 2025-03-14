@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017-2024, Manticore Software LTD (https://manticoresearch.com)
+// Copyright (c) 2017-2025, Manticore Software LTD (https://manticoresearch.com)
 // Copyright (c) 2001-2016, Andrew Aksyonoff
 // Copyright (c) 2008-2016, Sphinx Technologies Inc
 // All rights reserved
@@ -63,22 +63,23 @@ uint64_t sphCalcExprDepHash ( const char * szTag, ISphExpr * pExpr, const ISphSc
 
 uint64_t sphCalcExprDepHash ( ISphExpr * pExpr, const ISphSchema & tSorterSchema, uint64_t uPrevHash, bool & bDisable )
 {
-	CSphVector<int> dCols;
+	CSphVector<CSphString> dCols;
 	pExpr->Command ( SPH_EXPR_GET_DEPENDENT_COLS, &dCols );
 
 	uint64_t uHash = uPrevHash;
 	ARRAY_FOREACH ( i, dCols )
 	{
-		const CSphColumnInfo & tCol = tSorterSchema.GetAttr ( dCols[i] );
-		if ( tCol.m_pExpr )
+		const CSphColumnInfo * pCol = tSorterSchema.GetAttr ( dCols[i].cstr() );
+		assert(pCol);
+		if ( pCol->m_pExpr )
 		{
 			// one more expression
-			uHash = tCol.m_pExpr->GetHash ( tSorterSchema, uHash, bDisable );
+			uHash = pCol->m_pExpr->GetHash ( tSorterSchema, uHash, bDisable );
 			if ( bDisable )
 				return 0;
 		}
 		else
-			uHash = sphCalcLocatorHash ( tCol.m_tLocator, uHash ); // plain column, add locator to hash
+			uHash = sphCalcLocatorHash ( pCol->m_tLocator, uHash ); // plain column, add locator to hash
 	}
 
 	return uHash;

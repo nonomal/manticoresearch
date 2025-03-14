@@ -65,14 +65,14 @@ Query OK, 2 rows affected (0.00 sec)
 ```json
 POST /insert
 {
-	"index":"test_vec",
+	"table":"test_vec",
 	"id":1,
 	"doc": 	{ "title" : "yellow bag", "image_vector" : [0.653448,0.192478,0.017971,0.339821] }
 }
 
 POST /insert
 {
-	"index":"test_vec",
+	"table":"test_vec",
 	"id":2,
 	"doc": 	{ "title" : "white bag", "image_vector" : [-0.148894,0.748278,0.091892,-0.095406] }
 }
@@ -82,7 +82,7 @@ POST /insert
 
 ```json
 {
-	"_index":"test",
+	"table":"test",
 	"_id":1,
 	"created":true,
 	"result":"created",
@@ -90,7 +90,7 @@ POST /insert
 }
 
 {
-	"_index":"test",
+	"table":"test",
 	"_id":2,
 	"created":true,
 	"result":"created",
@@ -106,25 +106,27 @@ POST /insert
 
 Now, you can perform a KNN search using the `knn` clause in either SQL or JSON format. Both interfaces support the same essential parameters, ensuring a consistent experience regardless of the format you choose:
 
-- SQL: `select ... from <table name> where knn ( <field>, <k>, <query vector> )`
+- SQL: `select ... from <table name> where knn ( <field>, <k>, <query vector> [,<ef>] )`
 - JSON:
   ```
   POST /search
   {
-      "index": "<table name>",
+      "table": "<table name>",
       "knn":
       {
           "field": "<field>",
           "query_vector": [<query vector>],
-          "k": <k>
+          "k": <k>,
+          "ef": <ef>
       }
   }
   ```
 
 The parameters are:
 * `field`: This is the name of the float vector attribute containing vector data.
-* `k`: This represents the number of documents to return. It indicates how many documents a single Hierarchical Navigable Small World (HNSW) index will return. The actual result may include more documents than `k` (e.g., if each disk chunk in a real-time table returns `k` documents, the total would be `num_chunks * k` documents). Conversely, the result might contain fewer than `k` documents if, for example, you request `k` documents and subsequently filter them by some attribute.
+* `k`: This represents the number of documents to return and is a key parameter for Hierarchical Navigable Small World (HNSW) indexes. It specifies the quantity of documents that a single HNSW index should return. However, the actual number of documents included in the final results may vary. For instance, if the system is dealing with real-time tables divided into disk chunks, each chunk could return `k` documents, leading to a total that exceeds the specified `k` (as the cumulative count would be `num_chunks * k`). On the other hand, the final document count might be less than `k` if, after requesting `k` documents, some are filtered out based on specific attributes. It's important to note that the parameter `k` does not apply to ramchunks. In the context of ramchunks, the retrieval process operates differently, and thus, the `k` parameter's effect on the number of documents returned is not applicable.
 * `query_vector`: This is the search vector.
+* `ef`: optional size of the dynamic list used during the search. A higher `ef` leads to more accurate but slower search.
 
 Documents are always sorted by their distance to the search vector. Any additional sorting criteria you specify will be applied after this primary sort condition. For retrieving the distance, there is a built-in function called [knn_dist()](../Functions/Other_functions.md#KNN_DIST%28%29).
 
@@ -134,7 +136,7 @@ Documents are always sorted by their distance to the search vector. Any addition
 <!-- request SQL -->
 
 ```sql
-select id, knn_dist() from test where knn ( image_vector, 5, (0.286569,-0.031816,0.066684,0.032926) );
+select id, knn_dist() from test where knn ( image_vector, 5, (0.286569,-0.031816,0.066684,0.032926), 2000 );
 ```
 <!-- response SQL -->
 
@@ -156,12 +158,13 @@ select id, knn_dist() from test where knn ( image_vector, 5, (0.286569,-0.031816
 ```json
 POST /search
 {
-	"index": "test",
+	"table": "test",
 	"knn":
 	{
 		"field": "image_vector",
 		"query_vector": [0.286569,-0.031816,0.066684,0.032926],
-		"k": 5
+		"k": 5,
+		"ef": 2000
 	}
 }
 ```
@@ -179,7 +182,7 @@ POST /search
 		"hits":
 		[
 			{
-				"_id":"1",
+				"_id": 1,
 				"_score":1,
 				"_knn_dist":0.28146550,
 				"_source":
@@ -189,7 +192,7 @@ POST /search
 				}
 			},
 			{
-				"_id":"2",
+				"_id": 2,
 				"_score":1,
 				"_knn_dist":0.81527930,
 				"_source":
@@ -210,6 +213,8 @@ POST /search
 
 ### Find similar docs by id
 
+> NOTE: Finding similar documents by id requires [Manticore Buddy](../Installation/Manticore_Buddy.md). If it doesn't work, make sure Buddy is installed.
+
 Finding documents similar to a specific one based on its unique ID is a common task. For instance, when a user views a particular item, Manticore Search can efficiently identify and display a list of items that are most similar to it in the vector space. Here's how you can do it:
 
 - SQL: `select ... from <table name> where knn ( <field>, <k>, <document id> )`
@@ -217,7 +222,7 @@ Finding documents similar to a specific one based on its unique ID is a common t
   ```
   POST /search
   {
-      "index": "<table name>",
+      "table": "<table name>",
       "knn":
       {
           "field": "<field>",
@@ -229,7 +234,7 @@ Finding documents similar to a specific one based on its unique ID is a common t
 
 The parameters are:
 * `field`: This is the name of the float vector attribute containing vector data.
-* `k`: This represents the number of documents to return. It indicates how many documents a single Hierarchical Navigable Small World (HNSW) index will return. The actual result may include more documents than `k` (e.g., if each disk chunk in a real-time table returns `k` documents, the total would be `num_chunks * k` documents). Conversely, the result might contain fewer than `k` documents if, for example, you request `k` documents and subsequently filter them by some attribute.
+* `k`: This represents the number of documents to return and is a key parameter for Hierarchical Navigable Small World (HNSW) indexes. It specifies the quantity of documents that a single HNSW index should return. However, the actual number of documents included in the final results may vary. For instance, if the system is dealing with real-time tables divided into disk chunks, each chunk could return `k` documents, leading to a total that exceeds the specified `k` (as the cumulative count would be `num_chunks * k`). On the other hand, the final document count might be less than `k` if, after requesting `k` documents, some are filtered out based on specific attributes. It's important to note that the parameter `k` does not apply to ramchunks. In the context of ramchunks, the retrieval process operates differently, and thus, the `k` parameter's effect on the number of documents returned is not applicable.
 * `document id`: Document ID for KNN similarity search.
 
 
@@ -260,7 +265,7 @@ select id, knn_dist() from test where knn ( image_vector, 5, 1 );
 ```json
 POST /search
 {
-  "index": "test",
+  "table": "test",
   "knn":
   {
     "field": "image_vector",
@@ -283,7 +288,7 @@ POST /search
 		"hits":
 		[
 			{
-				"_id":"2",
+				"_id": 2,
 				"_score":1643,
 				"_knn_dist":0.81527930,
 				"_source":
@@ -332,7 +337,7 @@ select id, knn_dist() from test where knn ( image_vector, 5, (0.286569,-0.031816
 ```json
 POST /search
 {
-	"index": "test",
+	"table": "test",
 	"knn":
 	{
 		"field": "image_vector",
@@ -366,7 +371,7 @@ POST /search
 		"hits":
 		[
 			{
-				"_id":"2",
+				"_id": 2,
 				"_score":1643,
 				"_knn_dist":0.81527930,
 				"_source":

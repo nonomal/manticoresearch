@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2024, Manticore Software LTD (https://manticoresearch.com)
+// Copyright (c) 2024-2025, Manticore Software LTD (https://manticoresearch.com)
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -415,7 +415,7 @@ struct WrappedWsrep_t final : public ISphRefcountedMT
 	}
 
 public:
-	using Status_e = Status_e;
+	using Status_e_ = Status_e;
 	inline static const char* szGetStatus ( Status_e eStatus ) noexcept
 	{
 		return GetStatus ( eStatus );

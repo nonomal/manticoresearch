@@ -8,6 +8,13 @@
 #pragma GCC diagnostic ignored "-Wfree-nonheap-object"
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #endif
+
+#define TRACK_BOUNDS(_res,_left,_right) \
+	_res = _left; \
+	if ( _res.m_iStart>0 && pParser->m_pBuf[_res.m_iStart-1]=='`' ) \
+		_res.m_iStart--; \
+	_res.m_iEnd = _right.m_iEnd; \
+	_res.m_iType = 0;
 %}
 
 %lex-param		{ DdlParser_c * pParser }
@@ -57,16 +64,19 @@
 %token	TOK_KNN_DIMS
 %token	TOK_KNN_TYPE
 %token	TOK_LIKE
+%token	TOK_OPTION
 %token	TOK_MULTI
 %token	TOK_MULTI64
 %token	TOK_MODIFY
 %token	TOK_NOT
 %token	TOK_PLUGIN
+%token	TOK_QUANTIZATION
 %token	TOK_REBUILD
 %token	TOK_RECONFIGURE
 %token	TOK_RETURNS
 %token	TOK_RTINDEX
 %token	TOK_SECONDARY
+%token	TOK_SECONDARY_INDEX
 %token	TOK_SONAME
 %token	TOK_STORED
 %token	TOK_STRING
@@ -87,7 +97,7 @@ statement:
 	alter
 	| create_table
 	| create_table_like
-	| drop_table
+	| drop_table_with_opt
 	| create_function
 	| drop_function
 	| create_plugin
@@ -130,6 +140,22 @@ attribute_type:
 	| TOK_UINT		{ $$.SetValueInt ( SPH_ATTR_INTEGER ); }
 	| TOK_TIMESTAMP	{ $$.SetValueInt ( SPH_ATTR_TIMESTAMP ); }
 	| TOK_FLOAT_VECTOR { $$.SetValueInt ( SPH_ATTR_FLOAT_VECTOR ); }
+	;
+
+list_of_tables:
+	| tablename ',' tablename
+		{
+    		TRACK_BOUNDS ( $$, $1, $3 );
+    	}
+	| list_of_tables ',' tablename
+		{
+			TRACK_BOUNDS ( $$, $1, $3 );
+		}
+	;
+
+table_or_tables:
+	tablename
+	| list_of_tables
 	;
 	
 //////////////////////////////////////////////////////////////////////////
@@ -191,20 +217,15 @@ alter:
 			pParser->ToString ( tStmt.m_sIndex, $3 );
 			pParser->ToString ( tStmt.m_sAlterOption, $6 ).Unquote();
 		}
-	| TOK_ALTER TOK_TABLE tablename create_table_option_list
-		{
-			SqlStmt_t & tStmt = *pParser->m_pStmt;
-			tStmt.m_eStmt = STMT_ALTER_INDEX_SETTINGS;
-			pParser->ToString ( tStmt.m_sIndex, $3 );
-		}
-	| TOK_ALTER TOK_CLUSTER ident TOK_ADD tablename
+	| alter_index_settings_with_options
+	| TOK_ALTER TOK_CLUSTER ident TOK_ADD table_or_tables
 		{
 			SqlStmt_t & tStmt = *pParser->m_pStmt;
 			tStmt.m_eStmt = STMT_CLUSTER_ALTER_ADD;
 			pParser->ToString ( tStmt.m_sCluster, $3 );
 			pParser->ToString ( tStmt.m_sIndex, $5 );
 		}
-	| TOK_ALTER TOK_CLUSTER ident TOK_DROP tablename
+	| TOK_ALTER TOK_CLUSTER ident TOK_DROP table_or_tables
 		{
 			SqlStmt_t & tStmt = *pParser->m_pStmt;
 			tStmt.m_eStmt = STMT_CLUSTER_ALTER_DROP;
@@ -224,6 +245,20 @@ alter:
 			tStmt.m_eStmt = STMT_ALTER_REBUILD_SI;
 			pParser->ToString ( tStmt.m_sIndex, $3 );
 		}
+	;
+
+
+alter_index_settings:
+	TOK_ALTER TOK_TABLE tablename create_table_option_list
+		{
+			SqlStmt_t & tStmt = *pParser->m_pStmt;
+			tStmt.m_eStmt = STMT_ALTER_INDEX_SETTINGS;
+			pParser->ToString ( tStmt.m_sIndex, $3 );
+		}
+	;
+
+alter_index_settings_with_options:
+	alter_index_settings opt_option_clause
 	;
 
 //////////////////////////////////////////////////////////////////////////
@@ -299,6 +334,22 @@ item_option:
 	| TOK_HNSW_EF_CONSTRUCTION '=' TOK_QUOTED_STRING
 		{
 			if ( !pParser->AddItemOptionHNSWEfConstruction ( $3 ) )
+			{
+				yyerror ( pParser, pParser->GetLastError() );
+    	    	YYERROR;
+			}
+		}
+	| TOK_QUANTIZATION '=' TOK_QUOTED_STRING
+		{
+			if ( !pParser->AddItemOptionQuantization ( $3 ) )
+			{
+				yyerror ( pParser, pParser->GetLastError() );
+    	    	YYERROR;
+			}
+		}
+	| TOK_SECONDARY_INDEX '=' TOK_QUOTED_STRING
+		{
+			if ( !pParser->AddItemOptionIndexed ( $3 ) )
 			{
 				yyerror ( pParser, pParser->GetLastError() );
     	    	YYERROR;
@@ -391,6 +442,10 @@ drop_table:
 			pParser->ToString ( tStmt.m_sIndex, $4 );
 			tStmt.m_sIndex.ToLower();
 		}
+	;
+
+drop_table_with_opt:
+	drop_table opt_option_clause
 	;
 
 //////////////////////////////////////////////////////////////////////////
@@ -515,6 +570,33 @@ import_table:
 			tStmt.m_sStringParam = pParser->ToStringUnescape ( $5 );
 		}
 	;
+
+//////////////////////////////////////////////////////////////////////////
+// common option clause
+
+opt_option_clause:
+	// empty
+	| TOK_OPTION option_list
+	;
+
+option_list:
+	option_item
+	| option_list ',' option_item
+	;
+
+option_item:
+	ident '=' TOK_CONST_INT
+		{
+			if ( !pParser->AddOption ( $1, $3 ) )
+				YYERROR;
+		}
+	| ident '=' TOK_QUOTED_STRING
+		{
+			if ( !pParser->AddOption ( $1, $3 ) )
+				YYERROR;
+		}
+	;
+
 
 %%
 

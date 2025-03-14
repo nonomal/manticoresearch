@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024, Manticore Software LTD (https://manticoresearch.com)
+// Copyright (c) 2019-2025, Manticore Software LTD (https://manticoresearch.com)
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -33,6 +33,8 @@ enum class E_CLUSTER : WORD
 	UPDATE_NODES		= 7,
 	INDEX_ADD_DIST		= 8,
 	GET_NODE_STATE		= 9,
+	GET_NODE_VER		= 10,
+	GET_NODE_VER_ID		= 11,
 };
 
 inline constexpr const char* szClusterCmd ( E_CLUSTER eCmd )
@@ -48,6 +50,8 @@ inline constexpr const char* szClusterCmd ( E_CLUSTER eCmd )
 	case E_CLUSTER::UPDATE_NODES: return "update_nodes";
 	case E_CLUSTER::INDEX_ADD_DIST: return "index_add_distributed";
 	case E_CLUSTER::GET_NODE_STATE: return "get_node_state";
+	case E_CLUSTER::GET_NODE_VER: return "get_node_ver";
+	case E_CLUSTER::GET_NODE_VER_ID: return "get_node_ver_id";
 	default: return "unknown";
 	}
 }

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2024, Manticore Software LTD (https://manticoresearch.com)
+// Copyright (c) 2024-2025, Manticore Software LTD (https://manticoresearch.com)
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -364,9 +364,13 @@ int CalcWeekNumber ( const cctz::civil_second & tTime, uint32_t uFlags )
 	return iDays/7 + 1;
 }
 
-static CSphString g_sCompatDateFormat ( "%Y-%m-%dT%H:%M:%S" ); // YYYY-mm-dd'T'HH:mm:ss.SSS'Z'
 
-const CSphString & CompatDateFormat()
+bool ParseAsLocalTime ( const char * szFmt, const CSphString & sTime, time_t & tRes )
 {
-	return g_sCompatDateFormat;
+	std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds> tTP;
+	if ( !cctz::parse ( szFmt, sTime.cstr(), g_hTimeZone, &tTP ) )
+		return false;
+
+	tRes = tTP.time_since_epoch().count();
+	return true;
 }

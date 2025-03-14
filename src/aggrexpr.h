@@ -57,7 +57,13 @@ enum class Aggr_e
 	HISTOGRAM,
 	DATE_HISTOGRAM,
 	RANGE,
-	DATE_RANGE
+	DATE_RANGE,
+	COMPOSITE,
+	COUNT,
+	MIN,
+	MAX,
+	SUM,
+	AVG
 };
 
 struct DateRangeSetting_t
@@ -76,6 +82,7 @@ struct AggrDateHistSetting_t
 {
 	CSphString m_sInterval;
 	bool m_bKeyed = false;
+	bool m_bFixed = false;
 };
 
 struct AggrSettings_t

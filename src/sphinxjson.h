@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2017-2024, Manticore Software LTD (https://manticoresearch.com)
+// Copyright (c) 2017-2025, Manticore Software LTD (https://manticoresearch.com)
 // Copyright (c) 2011-2016, Andrew Aksyonoff
 // Copyright (c) 2011-2016, Sphinx Technologies Inc
 // All rights reserved
@@ -318,7 +318,7 @@ public:
 	}
 
 	template<typename T>
-	void NamedVal ( const char* szName, T tValue )
+	void NamedVal ( const char* szName, const T & tValue )
 	{
 		Named ( szName );
 		*this << tValue;
@@ -411,8 +411,8 @@ ESphJsonType sphJsonFindByKey ( ESphJsonType eType, const BYTE ** ppValue, const
 /// find value by index in SphinxBSON blob, return associated type
 ESphJsonType sphJsonFindByIndex ( ESphJsonType eType, const BYTE ** ppValue, int iIndex );
 
-/// extract object part from the name; return false if not JSON name
-bool sphJsonNameSplit ( const char * sName, CSphString * sColumn=nullptr );
+/// extract object part from the name; return false if not JSON name. szIndex is the possible name of joined index
+bool sphJsonNameSplit ( const char * szName, const char * szIndex = nullptr, CSphString * pColumn = nullptr );
 
 /// compute node size, in bytes
 /// returns -1 when data itself is required to compute the size, but pData is NULL
@@ -473,7 +473,7 @@ public:
 	void			AddStr ( const char * szName, const CSphString & sValue );
 	void			AddInt ( const char * szName, int64_t iValue );
 	void			AddUint ( const char * szName, uint64_t uValue );
-	void			AddFlt ( const char * szName, float fValue );
+	void			AddFlt ( const char * szName, double fValue );
 	void			AddBool ( const char * szName, bool bValue );
 	void			AddNull ( const char * szName );
 	void			AddItem ( const char * szName, JsonObj_c & tObj );
@@ -487,17 +487,21 @@ public:
 	JsonObj_c		GetIntItem ( const char * szName, CSphString & sError, bool bIgnoreMissing=false ) const;
 	JsonObj_c		GetIntItem ( const char * szName1, const char * szName2, CSphString & sError ) const;
 	JsonObj_c		GetBoolItem ( const char * szName, CSphString & sError, bool bIgnoreMissing=false ) const;
+	JsonObj_c		GetFltItem ( const char * szName, CSphString & sError, bool bIgnoreMissing=false ) const;
 	JsonObj_c		GetStrItem ( const char * szName, CSphString & sError, bool bIgnoreMissing=false ) const;
 	JsonObj_c		GetStrItem ( const char * szName1, const char * szName2, CSphString & sError ) const;
 	JsonObj_c		GetObjItem ( const char * szName, CSphString & sError, bool bIgnoreMissing=false ) const;
 	JsonObj_c		GetArrayItem ( const char * szName, CSphString & sError, bool bIgnoreMissing=false ) const;
 	bool			FetchIntItem ( int & iValue, const char * szName, CSphString & sError, bool bIgnoreMissing=false ) const;
+	bool			FetchInt64Item ( int64_t & iValue, const char * szName, CSphString & sError, bool bIgnoreMissing=false ) const;
 	bool			FetchBoolItem ( bool & bValue, const char * szName, CSphString & sError, bool bIgnoreMissing=false ) const;
+	bool			FetchFltItem ( float & fValue, const char * szName, CSphString & sError, bool bIgnoreMissing=false ) const;
 	bool			FetchStrItem ( CSphString & sValue, const char * szName, CSphString & sError, bool bIgnoreMissing=false ) const;
 	bool			HasItem ( const char * szName ) const;
 
 	static JsonObj_c CreateInt ( int64_t iInt );
 	static JsonObj_c CreateUint ( uint64_t uInt );
+	static JsonObj_c CreateDouble ( double fValue );
 	static JsonObj_c CreateStr ( const CSphString & sStr );
 
 	bool			IsInt() const;
@@ -509,8 +513,9 @@ public:
 	bool			IsStr() const;
 	bool			IsArray() const;
 	bool			Empty() const;
-	const char *	Name() const;
 	bool			IsNull() const;
+	const char *	Name() const;
+	const char *	TypeName() const;
 
 	int64_t			IntVal() const;
 	bool			BoolVal() const;
@@ -522,7 +527,7 @@ public:
 	const char *	GetErrorPtr() const;
 	bool			GetError ( const char * szBuf, int iBufLen, CSphString & sError ) const;
 	bool			GetError ( const char* szBuf, int iBufLen ) const;
-	cJSON *			GetRoot();
+	cJSON *			GetRoot() const;
 	CSphString		AsString ( bool bFormat=false ) const;
 
 	JsonObj_c		begin() const;
@@ -835,6 +840,7 @@ public:
 int sphJsonUnescape ( char ** pEscaped, int iLen );
 int sphJsonUnescape1 ( char ** pEscaped, int iLen );
 int JsonUnescape ( char * pTarget, const char * pEscaped, int iLen );
+CSphString FormatJsonAsSortStr ( const BYTE * pVal, ESphJsonType eJson );
 
 template <typename PUSH>
 static bool PushJsonField ( int64_t iValue, const BYTE * pBlobPool, PUSH && fnPush )
@@ -939,6 +945,75 @@ static bool PushJsonField ( int64_t iValue, const BYTE * pBlobPool, PUSH && fnPu
 		uGroupKey = 0;
 		iValue = 0;
 		return fnPush ( &iValue, uGroupKey );
+	}
+}
+
+template <typename PUSH>
+void PushJsonFieldPtr ( const BYTE * pVal, ESphJsonType eJson, PUSH && fnPush )
+{
+	if ( !pVal )
+		return;
+
+	switch ( eJson )
+	{
+	case JSON_INT32:
+		fnPush ( sphFNV64 ( sphJsonLoadInt(&pVal) ) );
+		break;
+
+	case JSON_INT64:
+	case JSON_DOUBLE:
+		fnPush ( sphFNV64 ( sphJsonLoadBigint(&pVal) ) );
+		break;
+
+	case JSON_STRING:
+	{
+		int iLen = sphJsonUnpackInt ( &pVal );
+		fnPush ( sphFNV64 ( pVal, iLen ) );
+	}
+	break;
+
+	case JSON_INT32_VECTOR:
+	case JSON_INT64_VECTOR:
+	case JSON_DOUBLE_VECTOR:
+	{
+		int iSize = eJson==JSON_INT32_VECTOR ? 1 : 2;
+		int iVals = sphJsonUnpackInt ( &pVal );
+		if ( !iVals )
+			break;
+
+		auto * pValues = (const int*)pVal;
+		for ( int i = 0; i < iVals; i++ )
+		{
+			fnPush ( sphFNV64(*pValues) );
+			pValues += iSize;
+		}
+	}
+	break;
+
+	case JSON_STRING_VECTOR:
+		{
+		sphJsonUnpackInt ( &pVal ); // total length
+		int iCount = sphJsonUnpackInt ( &pVal );
+
+		// head element
+		if ( iCount )
+		{
+			int iElemLen = sphJsonUnpackInt ( &pVal );
+			fnPush ( sphFNV64 ( pVal, iElemLen ) );
+			pVal += iElemLen;
+		}
+
+		// tail elements separated by space
+		for ( int i=1; i<iCount; i++ )
+		{
+			int iElemLen = sphJsonUnpackInt ( &pVal );
+			fnPush ( sphFNV64 ( pVal, iElemLen ) );
+			pVal += iElemLen;
+		}
+		break;
+	}
+	default:
+		break;
 	}
 }
 

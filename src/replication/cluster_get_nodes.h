@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019-2024, Manticore Software LTD (https://manticoresearch.com)
+// Copyright (c) 2019-2025, Manticore Software LTD (https://manticoresearch.com)
 // All rights reserved
 //
 // This program is free software; you can redistribute it and/or modify
@@ -29,3 +29,5 @@ using ClusterNodesStatesVec_t = CSphVector<RemoteNodeClusterState_t>;
 // command to all remote nodes at cluster to get actual nodes states
 ClusterNodesStatesVec_t GetStatesFromRemotes ( const ClusterDesc_t & tDesc );
 bool ClusterGetState ( const CSphString & sCluster, RemoteNodeClusterState_t & tState );
+
+bool CheckRemotesVersions ( const ClusterDesc_t & tDesc, bool bWithServerId );

@@ -8,7 +8,7 @@ the components.
 
 Copyright:
 ```
-Copyright (c) 2017-2024, Manticore Software LTD (https://manticoresearch.com)
+Copyright (c) 2017-2025, Manticore Software LTD (https://manticoresearch.com)
 All rights reserved
 ```
 Manticore Search is released under [GPL v3 or later](https://raw.githubusercontent.com/manticoresoftware/manticoresearch/master/LICENSE).
@@ -66,7 +66,7 @@ Manticore Search binaries may dynamically load and utilize the library at runtim
 
 Copyright:
 ```
-Copyright (c) 2020-2024, Manticore Software LTD (https://manticoresearch.com)
+Copyright (c) 2020-2025, Manticore Software LTD (https://manticoresearch.com)
 All rights reserved
 ```
 
@@ -80,7 +80,7 @@ Copyright:
 ```
 Copyright (c) 2001-2016, Andrew Aksyonoff
 Copyright (c) 2008-2016, Sphinx Technologies Inc
-Copyright (c) 2017-2024, Manticore Software LTD (https://manticoresearch.com)
+Copyright (c) 2017-2025, Manticore Software LTD (https://manticoresearch.com)
 All rights reserved
 
 This program is free software; you can redistribute it and/or modify
@@ -114,7 +114,7 @@ Copyright:
 ```
 Copyright (c) 2001-2016, Andrew Aksyonoff
 Copyright (c) 2008-2016, Sphinx Technologies Inc
-Copyright (c) 2017-2024, Manticore Software LTD (https://manticoresearch.com)
+Copyright (c) 2017-2025, Manticore Software LTD (https://manticoresearch.com)
 All rights reserved
 
 This program is free software; you can redistribute it and/or modify
@@ -212,7 +212,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin St, Fifth Floor, Boston, MA 02110-1301  USA
 =============================================================================
 Copyright 2015 Sphinx Technologies, Inc.
-Copyright 2017-2024, Manticore Software LTD (https://manticoresearch.com)
+Copyright 2017-2025, Manticore Software LTD (https://manticoresearch.com)
 
 Distributed under the OSI-approved BSD License (the "License");
 see accompanying file Copyright.txt for details.
@@ -697,3 +697,59 @@ source files, including library header files, at any stage of building, packagin
 or distributing Manticore Search binaries.
 
 License: [GPLv2](https://raw.githubusercontent.com/codership/galera/3.x/LICENSE).
+
+## xxHash
+
+https://xxhash.com/, https://github.com/Cyan4973/xxHash
+
+Source files: Manticore Search project uses a [modified version](https://github.com/manticoresoftware/xxhash)
+of xxHash, but does not redistribute any of its source files. However, these source files
+are utilized during the compilation process and become part of the Manticore
+Search binaries.
+
+Copyright:
+```
+ * Copyright (C) 2012-2023 Yann Collet
+ *
+ * BSD 2-Clause License (https://www.opensource.org/licenses/bsd-license.php)
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *
+ *    * Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above
+ *      copyright notice, this list of conditions and the following disclaimer
+ *      in the documentation and/or other materials provided with the
+ *      distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * You can contact the author at:
+ *   - xxHash homepage: https://www.xxhash.com
+ *   - xxHash source repository: https://github.com/Cyan4973/xxHash
+```
+
+License: [BSD 2-Clause License](https://www.opensource.org/licenses/bsd-license.php)
+
+## cppjieba
+
+https://github.com/yanyiwu/cppjieba
+
+Source files: Manticore Search project uses a [modified version](https://github.com/manticoresoftware/cppjieba)
+of cppjieba, but does not redistribute any of its source files. However, these
+source files are utilized during the compilation process and become part of the
+Manticore Search binaries.
+
+License: [MIT License](https://opensource.org/license/mit)

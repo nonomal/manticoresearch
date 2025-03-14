@@ -81,12 +81,16 @@ attr_flush_period = 900 # persist updates to disk every 15 minutes
 <!-- example conf auto_optimize -->
 This setting controls the automatic [OPTIMIZE](../Securing_and_compacting_a_table/Compacting_a_table.md#OPTIMIZE-TABLE) process for table compaction.
 
-Starting with Manticore 4, table compaction occurs automatically. You can modify this behavior with the `auto_optimize` setting:
+By default table compaction occurs automatically. You can modify this behavior with the `auto_optimize` setting:
 * 0 to disable automatic table compaction (you can still call `OPTIMIZE` manually)
 * 1 to explicitly enable it
-* N to enable it, but allow OPTIMIZE to start when the number of disk chunks is greater than `# of CPU cores * 2 * N`
+* to enable it while multiplying the optimization threshold by 2.
 
-Note that toggling `auto_optimize` on or off doesn't prevent you from running `OPTIMIZE` manually.
+By default, OPTIMIZE runs until the number of disk chunks is less than or equal to the number of logical CPU cores multiplied by 2.
+
+However, if the table has attributes with KNN indexes, this threshold is different. In this case, it is set to the number of physical CPU cores divided by 2 to improve KNN search performance.
+
+Note that toggling `auto_optimize` on or off doesn't prevent you from running [OPTIMIZE TABLE](../Securing_and_compacting_a_table/Compacting_a_table.md#OPTIMIZE-TABLE) manually.
 
 <!-- intro -->
 ##### Example:
@@ -109,6 +113,8 @@ auto_optimize = 2 # OPTIMIZE starts at 16 chunks (on 4 cpu cores server)
 Manticore supports the automatic creation of tables that don't yet exist but are specified in INSERT statements. This feature is enabled by default. To disable it, set `auto_schema = 0` explicitly in your configuration. To re-enable it, set `auto_schema = 1` or remove the `auto_schema` setting from the configuration.
 
 Keep in mind that the `/bulk` HTTP endpoint does not support automatic table creation.
+
+> NOTE: The [auto schema functionality](../Data_creation_and_modification/Adding_documents_to_a_table/Adding_documents_to_a_real-time_table.md#Auto-schema) requires [Manticore Buddy](../Installation/Manticore_Buddy.md). If it doesn't work, make sure Buddy is installed.
 
 <!-- request Disable -->
 ```ini
@@ -149,7 +155,7 @@ binlog_flush = 1 # ultimate safety, low speed
 ### binlog_max_log_size
 
 <!-- example conf binlog_max_log_size -->
-This setting controls the maximum binary log file size. It is optional, with a default value of 268435456, or 256 MB.
+This setting controls the maximum binary log file size. It is optional, with a default value of 256 MB.
 
 A new binlog file will be forcibly opened once the current binlog file reaches this size limit. This results in a finer granularity of logs and can lead to more efficient binlog disk usage under certain borderline workloads. A value of 0 indicates that the binlog file should not be reopened based on size.
 
@@ -216,6 +222,8 @@ You can also opt for the special `manticore-executor-dev` version for Linux amd6
 
 If you go this route, remember to link the dev version of the manticore executor to `/usr/bin/php`.
 
+To disable Manticore Buddy, set the value to empty as shown in the example.
+
 <!-- intro -->
 ##### Example:
 
@@ -225,6 +233,8 @@ If you go this route, remember to link the dev version of the manticore executor
 buddy_path = manticore-executor -n /usr/share/manticore/modules/manticore-buddy/src/main.php --debug # use the default Manticore Buddy in Linux, but run it in debug mode
 buddy_path = manticore-executor -n /opt/homebrew/share/manticore/modules/manticore-buddy/bin/manticore-buddy/src/main.php --debug # use the default Manticore Buddy in MacOS arm64, but run it in debug mode
 buddy_path = manticore-executor -n /Users/username/manticoresearch-buddy/src/main.php --debug # use Manticore Buddy from a non-default location
+buddy_path = # disables Manticore Buddy
+buddy_path = manticore-executor -n /Users/username/manticoresearch-buddy/src/main.php --debugv --skip=manticoresoftware/buddy-plugin-replace # debugv - enables more detailed logging, --skip - skips plugins
 ```
 <!-- end -->
 
@@ -299,6 +309,41 @@ data_dir = /var/lib/manticore
 ```
 <!-- end -->
 
+### diskchunk_flush_search_timeout
+
+<!-- example conf diskchunk_flush_search_timeout -->
+The timeout for preventing auto-flushing a RAM chunk if there are no searches in the table. Optional, default is 30 seconds.
+
+The time to check for searches before determining whether to auto-flush.
+Auto-flushing will occur only if there has been at least one search in the table within the last `diskchunk_flush_search_timeout` seconds. Works in conjunction with [diskchunk_flush_write_timeout](../../Server_settings/Searchd.md#diskchunk_flush_write_timeout). The corresponding [per-table setting](../Creating_a_table/Local_tables/Plain_and_real-time_table_settings.md#diskchunk_flush_search_timeout) has a higher priority and will override this instance-wide default, providing more fine-grained control.
+
+<!-- intro -->
+##### Example:
+
+<!-- request Example -->
+
+```ini
+diskchunk_flush_search_timeout = 120s
+```
+<!-- end -->
+
+### diskchunk_flush_write_timeout
+
+<!-- example conf diskchunk_flush_write_timeout -->
+The time in seconds to wait without a write before auto-flushing the RAM chunk to disk. Optional, default is 1 second.
+
+If no write occurs in the RAM chunk within `diskchunk_flush_write_timeout` seconds, the chunk will be flushed to disk. Works in conjunction with [diskchunk_flush_search_timeout](../../Server_settings/Searchd.md#diskchunk_flush_search_timeout). To disable auto-flush, set `diskchunk_flush_write_timeout = -1` explicitly in your configuration. The corresponding [per-table setting](../Creating_a_table/Local_tables/Plain_and_real-time_table_settings.md#diskchunk_flush_write_timeout) has a higher priority and will override this instance-wide default, providing more fine-grained control.
+
+<!-- intro -->
+##### Example:
+
+<!-- request Example -->
+
+```ini
+diskchunk_flush_write_timeout = 60s
+```
+<!-- end -->
+
 ### docstore_cache_size
 
 <!-- example conf docstore_cache_size -->
@@ -350,6 +395,39 @@ expansion_limit = 16
 ```
 <!-- end -->
 
+### expansion_merge_threshold_docs
+
+<!-- example conf expansion_merge_threshold_docs -->
+This setting determines the maximum number of documents in the expanded keyword that allows merging all such keywords together. It is optional, with a default value of 32.
+
+When performing substring searches against tables built with `dict = keywords` enabled, a single wildcard may potentially result in thousands or even millions of matched keywords. This directive allows you to increase the limit of how many keywords will merge together to speed up matching but uses more memory in the search.
+
+<!-- intro -->
+##### Example:
+
+<!-- request Example -->
+
+```ini
+expansion_merge_threshold_docs = 1024
+```
+<!-- end -->
+
+### expansion_merge_threshold_hits
+
+<!-- example conf expansion_merge_threshold_hits -->
+This setting determines the maximum number of hits in the expanded keyword that allows merging all such keywords together. It is optional, with a default value of 256.
+
+When performing substring searches against tables built with `dict = keywords` enabled, a single wildcard may potentially result in thousands or even millions of matched keywords. This directive allows you to increase the limit of how many keywords will merge together to speed up matching but uses more memory in the search.
+
+<!-- intro -->
+##### Example:
+
+<!-- request Example -->
+
+```ini
+expansion_merge_threshold_hits = 512
+```
+<!-- end -->
 
 ### grouping_in_utc
 
@@ -421,6 +499,44 @@ The jobs_queue_size setting defines how many "jobs" can be in the queue at the s
 
 In most cases, a "job" means one query to a single local table (plain table or a disk chunk of a real-time table). For example, if you have a distributed table consisting of 2 local tables or a real-time table with 2 disk chunks, a search query to either of them will mostly put 2 jobs in the queue. Then, the thread pool (whose size is defined by [threads](../Server_settings/Searchd.md#threads) will process them. However, in some cases, if the query is too complex, more jobs can be created. Changing this setting is recommended when [max_connections](../Server_settings/Searchd.md#max_connections) and [threads](../Server_settings/Searchd.md#threads) are not enough to find a balance between the desired performance.
 
+### join_batch_size
+
+Table joins work by accumulating a batch of matches, which are the results of the query executed on the left table. This batch is then processed as a single query on the right table.
+
+This option allows you to adjust the batch size. The default value is `1000`, and setting this option to `0` disables batching.
+
+A larger batch size may improve performance; however, for some queries, it can lead to excessive memory consumption.
+
+<!-- intro -->
+##### Example:
+
+<!-- request Example -->
+
+```ini
+join_batch_size = 2000
+```
+<!-- end -->
+
+### join_cache_size
+
+Each query executed on the right table is defined by specific JOIN ON conditions, which determine the result set retrieved from the right table.
+
+If there are only a few unique JOIN ON conditions, reusing the results can be more efficient than repeatedly executing queries on the right table. To enable this, the result sets are stored in a cache.
+
+This option allows you to configure the size of this cache. The default value is `20 MB`, and setting this option to 0 disables caching.
+
+Note that each thread maintains its own cache, so you should account for the number of threads executing queries when estimating total memory usage.
+
+<!-- intro -->
+##### Example:
+
+<!-- request Example -->
+
+```ini
+join_cache_size = 10M
+```
+<!-- end -->
+
 ### listen_backlog
 
 <!-- example conf listen_backlog -->
@@ -467,7 +583,7 @@ You can also specify a protocol handler (listener) to be used for connections on
 * `mysql` MySQL protocol for connections from MySQL clients. Note:
   - Compressed protocol is also supported.
   - If [SSL](../Security/SSL.md#SSL) is enabled, you can make an encrypted connection.
-* `replication` - replication protocol used for nodes communication. More details can be found in the [replication](../Creating_a_cluster/Setting_up_replication/Setting_up_replication.md) section. You can specify multiple replication listeners, but they must all listen on the same IP; only the ports can be different.
+* `replication` - replication protocol used for nodes communication. More details can be found in the [replication](../Creating_a_cluster/Setting_up_replication/Setting_up_replication.md) section. You can specify multiple replication listeners, but they must all listen on the same IP; only the ports can be different. When you define a replication listener with a port range (e.g., `listen = 192.168.0.1:9320-9328:replication`), Manticore doesn't immediately start listening on these ports. Instead, it will take random free ports from the specified range only when you start using replication. At least 2 ports are required in the range for replication to work properly.
 * `http` - same as **Not specified**. Manticore will accept connections at this port from remote agents and clients via HTTP and HTTPS.
 * `https` - HTTPS protocol. Manticore will accept **only** HTTPS connections at this port. More details can be found in section [SSL](../Security/SSL.md).
 * `sphinx` - legacy binary protocol. Used to serve connections from remote [SphinxSE](../Extensions/SphinxSE.md) clients. Some Sphinx API clients implementations (an example is the Java one) require the explicit declaration of the listener.
@@ -675,7 +791,7 @@ max_open_files = max
 ### max_packet_size
 
 <!-- example conf max_packet_size -->
-Maximum allowed network packet size. This setting limits both query packets from clients and response packets from remote agents in a distributed environment. Only used for internal sanity checks, it does not directly affect RAM usage or performance. Optional, the default is 8M.
+Maximum allowed network packet size. This setting limits both query packets from clients and response packets from remote agents in a distributed environment. Only used for internal sanity checks, it does not directly affect RAM usage or performance. Optional, the default is 128M.
 
 
 <!-- intro -->
@@ -719,8 +835,7 @@ This setting is useful for extremely high query rates when just one thread is no
 
 Controls the busy loop interval of the network thread. The default is -1, and it can be set to -1, 0, or a positive integer.
 
-In cases where the server is configured as a pure master and just routes requests to agents, it is important to handle requests without delays and not allow the network thread to sleep. There is a busy loop for that. After an incoming request, the network thread uses CPU poll for `10 * net_wait_tm` milliseconds if
- `net_wait_tm` is a positive number or polls only with the CPU if`net_wait_tm` is `0`.  Also, the busy loop can be disabled with `net_wait_tm = -1` - in this case, the poller sets the timeout to the actual agent's timeouts on the system polling call.
+In cases where the server is configured as a pure master and just routes requests to agents, it is important to handle requests without delays and not allow the network thread to sleep. There is a busy loop for that. After an incoming request, the network thread uses CPU poll for `10 * net_wait_tm` milliseconds if `net_wait_tm` is a positive number or polls only with the CPU if `net_wait_tm` is `0`.  Also, the busy loop can be disabled with `net_wait_tm = -1` - in this case, the poller sets the timeout to the actual agent's timeouts on the system polling call.
 
 > **WARNING:** A CPU busy loop actually loads the CPU core, so setting this value to any non-default value will cause noticeable CPU usage even with an idle server.
 
@@ -1219,8 +1334,6 @@ This option enables/disables the use of secondary indexes for search queries. It
 * `1`: Enable the use of secondary indexes on search. They can be disabled for individual queries using [analyzer hints](../Searching/Options.md#Query-optimizer-hints)
 * `force`: Same as enable, but any errors during the loading of secondary indexes will be reported, and the whole index will not be loaded into the daemon.
 
-Note that secondary indexes are not effective for full-text queries.
-
 <!-- intro -->
 ##### Example:
 
@@ -1235,7 +1348,7 @@ secondary_indexes = 1
 ### server_id
 
 <!-- example conf server_id -->
-Integer number that serves as a server identifier used as a seed to generate a unique short UUID for nodes that are part of a replication cluster. The server_id must be unique across the nodes of a cluster and in the range from 0 to 127. If server_id is not set, the MAC address or a random number will be used as a seed for the short UUID.
+Integer number that serves as a server identifier used as a seed to generate a unique short UUID for nodes that are part of a replication cluster. The server_id must be unique across the nodes of a cluster and in the range from 0 to 127. If server_id is not set, it is calculated as a hash of the MAC address and the path to the PID file or a random number will be used as a seed for the short UUID.
 
 
 <!-- intro -->
